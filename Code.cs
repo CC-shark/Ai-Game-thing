@@ -102,3 +102,59 @@ public class VoiceImitationAgent : Agent
     // Extract the prosodic features from the audio data
     ExtractProsodicFeatures(audioData, startSample, endSample, features, featureIndex);
 }
+
+float ExtractPitchFeature(float sample)
+{
+    // Calculate the number of samples in the audio data
+    int numSamples = microphoneData.Length / sizeof(float);
+
+    // Calculate the autocorrelation of the audio data
+    float[] autocorrelation = CalculateAutocorrelation(microphoneData, numSamples);
+
+    // Find the maximum value in the autocorrelation array
+    float maxValue = autocorrelation[0];
+    int maxIndex = 0;
+    for (int i = 1; i < numSamples; i++)
+    {
+        if (autocorrelation[i] > maxValue)
+        {
+            maxValue = autocorrelation[i];
+            maxIndex = i;
+        }
+    }
+
+    // Calculate the pitch frequency based on the maximum value in the autocorrelation array
+    float pitchFrequency = (float)sampleRate / maxIndex;
+
+    // Return the pitch frequency as a feature
+    return pitchFrequency;
+}
+
+float[] CalculateAutocorrelation(byte[] audioData, int numSamples)
+{
+    // Initialize an array to store the autocorrelation values
+    float[] autocorrelation = new float[numSamples];
+
+    // Iterate over the samples in the audio data
+    for (int i = 0; i < numSamples; i++)
+    {
+        // Initialize the sum to 0
+        float sum = 0;
+
+        // Iterate over the samples in the audio data, starting at the current sample
+        for (int j = 0; j < numSamples - i; j++)
+        {
+            // Convert the audio sample from a byte to a float
+            float sample = BitConverter.ToSingle(audioData, j * sizeof(float));
+
+            // Add the product of the current sample and the sample at the specified offset to the sum
+            sum += sample * BitConverter.ToSingle(audioData, (j + i) * sizeof(float));
+        }
+
+        // Store the sum as the autocorrelation value at the current index
+        autocorrelation[i] = sum;
+    }
+
+    // Return the autocorrelation array
+    return autocorrelation;
+}
